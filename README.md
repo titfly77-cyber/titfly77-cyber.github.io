@@ -22,7 +22,7 @@
 
 本目录可以作为独立仓库。`dist/` 为发布产物，部署时只上传此目录的内容；原始简历资料目录和开发依赖不属于发布产物。所有资产为相对路径，使用哈希路由，兼容仓库子路径，刷新项目详情也可访问。
 
-当前未自动推送或发布到 GitHub。也可将 `dist/` 内容放入 GitHub Pages 使用的分支后在仓库设置中开启 Pages。
+代码已推送到 `titfly77-cyber/personal-website`。仓库中的 Pages 工作流会在 `main` 更新后构建并发布 `dist/`；首次使用时，需要在仓库 **Settings → Pages → Build and deployment** 中将 Source 设为 **GitHub Actions**，然后重新运行工作流。
 
 ## 验证
 
