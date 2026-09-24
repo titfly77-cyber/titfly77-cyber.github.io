@@ -6,6 +6,6 @@
 
 ## 发布
 
-main 分支更新后，GitHub Actions 会将静态网站发布到 GitHub Pages。
+本仓库为用户主页站点（`<用户名>.github.io`），GitHub Pages 直接发布 `main` 分支根目录内容，更新 main 后约一分钟自动生效，无需构建。
 
 上一代网站继续保留在 [personal-website](https://github.com/titfly77-cyber/personal-website)。
