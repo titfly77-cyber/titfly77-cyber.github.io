@@ -34,7 +34,7 @@
 .film-player .film-poster{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;pointer-events:none}
 .film-card:hover .film-cover img{transform:none}
 #entry-status{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;padding:24px;text-align:center;color:var(--body);font-size:14px}
-#loading-t{width:96px;height:81px;fill:var(--ink);transform-box:fill-box;transform-origin:center;animation:loading-t-spin 1.2s linear infinite;will-change:transform}
+#loading-t{width:112px;height:112px;overflow:visible;transform-box:view-box;transform-origin:center;transform:scale(0);will-change:transform}
 #entry-status>.button{position:absolute;top:calc(50% + 80px);width:48px;height:48px;min-height:48px;padding:12px}
-@keyframes loading-t-spin{to{transform:rotate(360deg)}}
-@media(prefers-reduced-motion:reduce){#loading-t{animation:none}}
+#transition[data-phase="loading-gap"] #entry-status{visibility:hidden}
+@media(prefers-reduced-motion:reduce){#loading-t{transform:none}}

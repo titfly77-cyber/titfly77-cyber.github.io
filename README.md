@@ -27,7 +27,7 @@ $env:PLAYWRIGHT_BROWSERS_PATH = 'E:/personal-resume/cache/playwright'
 
 - `app.js`、`site-data.js`、`narrative.json`：页面、作品数据与产品叙事。
 - `styles.css`：原型排版、桌面与移动布局。
-- `motion.js`：所有页面共用完整 T 形窗口进出场；加载 T 持续旋转，图片就绪后旋转缩至消失，再依次组装横线和竖线、停留、放大展开。
+- `motion.js`：所有页面共用完整 T 形窗口进出场；退出后留白 0.5 秒，加载 T 旋转放大、匀速旋转，图片就绪后旋转缩至消失，再依次组装横线和竖线、停留、放大展开。
 - `entry-assets.js`：等待首屏图片、素描图层与视频封面加载并解码后再进入；失败时保持遮罩并允许重试。
 - `scroll.js`：首页笔触显影、五阶段产品过程和 About 教育玻璃面板上浮。
 - `material.js`：真实 GLB 模型、表面采样粒子和随滚动在原位生成的产品材质。

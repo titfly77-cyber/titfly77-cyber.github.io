@@ -49,15 +49,15 @@ export async function waitForEntryImages(root,signal){
   while(true){
    signal.throwIfAborted();
    const pending=firstViewAssets(root).filter(el=>!ready.has(el));
-   if(!pending.length){await frame();signal.throwIfAborted();return}
+   if(!pending.length){await frame();signal.throwIfAborted();overlay.dataset.assetState='ready';return}
    const result=await Promise.allSettled(pending.map(el=>decode(el,signal)));
    signal.throwIfAborted();
    const failed=[];
    result.forEach((item,i)=>item.status==='fulfilled'?ready.add(pending[i]):failed.push(pending[i]));
    if(failed.length){
-    overlay.dataset.phase='load-error';status.setAttribute('aria-label','图片未加载完成，可重试');retry.hidden=false;
+    overlay.dataset.assetState='error';if(overlay.dataset.phase==='loading')overlay.dataset.phase='load-error';status.setAttribute('aria-label','图片未加载完成，可重试');retry.hidden=false;
     await waitForRetry(signal);signal.throwIfAborted();
-    retry.hidden=true;status.setAttribute('aria-label','正在加载');overlay.dataset.phase='loading';
+    retry.hidden=true;status.setAttribute('aria-label','正在加载');overlay.dataset.assetState='loading';if(overlay.dataset.phase==='load-error')overlay.dataset.phase='loading';
     failed.forEach(refresh);
    }
    // Let decoded images establish their layout, then include anything newly in view.

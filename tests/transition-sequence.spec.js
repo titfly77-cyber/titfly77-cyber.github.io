@@ -24,7 +24,15 @@ for(const [device,width,height,tWidth] of [['desktop',1440,960,640],['mobile',39
  const frames=await page.evaluate(()=>window.motionFrames);
  await test.info().attach('motion-frames',{body:JSON.stringify(frames),contentType:'application/json'});
  const phases=frames.map(f=>f.phase).filter((p,i,a)=>i===0||p!==a[i-1]);
- expect(phases.filter(p=>p!=='idle')).toEqual(['exiting','loading','loader-out','entering']);
+ expect(phases.filter(p=>p!=='idle')).toEqual(['exiting','loading-gap','loader-in','loading','loader-out','entering']);
+ const gap=frames.filter(f=>f.phase==='loading-gap');
+ expect(gap.at(-1).t).toBeGreaterThanOrEqual(450);expect(gap.at(-1).t).toBeLessThan(600);
+ expect(gap.every(f=>f.maskHidden&&f.scale===0)).toBe(true);
+ const grow=frames.filter(f=>f.phase==='loader-in');
+ expect(grow[0].scale).toBeLessThan(.02);expect(grow.at(-1).scale).toBeGreaterThan(.98);
+ expect(grow.every(f=>f.scale>=0&&f.scale<=1.001&&f.maskHidden)).toBe(true);
+ // A zero-scale matrix has no measurable angle; compare after the T starts appearing.
+ expect(Math.abs(grow.at(-1).angle-grow.find(f=>f.scale>.01).angle)).toBeGreaterThan(35);
  const shrink=frames.filter(f=>f.phase==='loader-out');expect(shrink.length).toBeGreaterThan(4);
  expect(shrink.every(f=>f.maskHidden&&f.ready&&!f.loaderHidden)).toBe(true);
  expect(shrink[0].scale).toBeGreaterThan(.9);expect(shrink.at(-1).scale).toBeLessThan(.15);
@@ -43,4 +51,11 @@ test('history can interrupt the loading T shrink without leaving a stuck overlay
  await page.locator('.nav-links a[href="#/about"]').click();await expect(page.locator('#transition')).toHaveAttribute('data-phase','loader-out');
  await page.goBack({waitUntil:'domcontentloaded'});await expect(page).toHaveURL(/#\/contact$/);await expect(page.locator('#transition')).toBeHidden();
  await page.goForward({waitUntil:'domcontentloaded'});await expect(page.locator('#transition')).toBeHidden();await expect(page.locator('.about-hero')).toBeVisible();
+});
+
+test('history can interrupt the loading T growth and restart the next entrance cleanly',async({page})=>{
+ await page.goto('/#/contact');await expect(page.locator('#transition')).toBeHidden();
+ await page.locator('.nav-links a[href="#/about"]').click();await expect(page.locator('#transition')).toHaveAttribute('data-phase','loader-in');
+ await page.goBack({waitUntil:'domcontentloaded'});await expect(page).toHaveURL(/#\/contact$/);await expect(page.locator('#transition')).toBeHidden();
+ await expect(page.locator('.contact-page')).toBeVisible();expect(await page.locator('#site').evaluate(el=>el.inert)).toBe(false);
 });
