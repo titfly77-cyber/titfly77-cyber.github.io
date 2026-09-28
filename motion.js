@@ -1,4 +1,5 @@
 import {gsap} from 'gsap';
+import {paintGlassEdge} from './glass-edge.js';
 const overlay=document.querySelector('#transition');
 const group=document.querySelector('#t-group');
 const bar=document.querySelector('#t-bar');
@@ -14,7 +15,7 @@ function stopLoader(){loaderIntro?.kill();loaderSpin?.kill();loaderIntro=loaderS
 function spinLoader(){loaderSpin=gsap.to(loaderState,{rotation:'+=360',duration:2.4,repeat:-1,ease:'none',onUpdate:paintLoader})}
 function untilReady(promise,signal){return new Promise((resolve,reject)=>{signal.throwIfAborted();const abort=()=>reject(signal.reason);signal.addEventListener('abort',abort,{once:true});promise.then(resolve,reject).finally(()=>signal.removeEventListener('abort',abort))})}
 function geometry(){const mobile=innerWidth<=760,s=mobile?Math.min(innerWidth/390,innerHeight/844):Math.min(innerWidth/1440,innerHeight/960);return mobile?[264*s,360*s,74*s,76*s]:[640*s,540*s,112*s,144*s]}
-function paint(){const w=innerWidth,h=innerHeight;const [width,height,barHeight,stemWidth]=geometry();const bx=-width/2,by=-height/2;bar.setAttribute('x',bx+state.h*w);bar.setAttribute('y',by);bar.setAttribute('width',width);bar.setAttribute('height',barHeight);stem.setAttribute('x',-stemWidth/2);stem.setAttribute('y',by+barHeight-1+state.v*h);stem.setAttribute('width',stemWidth);stem.setAttribute('height',height-barHeight+1);group.setAttribute('transform',`translate(${w/2} ${h/2}) scale(${state.scale})`)}
+function paint(){const w=innerWidth,h=innerHeight;const [width,height,barHeight,stemWidth]=geometry();const bx=-width/2,by=-height/2;const barBox={x:bx+state.h*w,y:by,w:width,h:barHeight},stemBox={x:-stemWidth/2,y:by+barHeight-1+state.v*h,w:stemWidth,h:height-barHeight+1};bar.setAttribute('x',barBox.x);bar.setAttribute('y',barBox.y);bar.setAttribute('width',width);bar.setAttribute('height',barHeight);stem.setAttribute('x',stemBox.x);stem.setAttribute('y',stemBox.y);stem.setAttribute('width',stemWidth);stem.setAttribute('height',stemBox.h);group.setAttribute('transform',`translate(${w/2} ${h/2}) scale(${state.scale})`);paintGlassEdge(barBox,stemBox,state.scale,w,h)}
 const fullScale=()=>{const [,h,b,s]=geometry();return Math.max(innerWidth/s,innerHeight/(h-2*b))*1.2};
 function lock(){overlay.hidden=false;site.inert=true;document.body.dataset.transition='true'}
 function unlock(){overlay.hidden=true;site.inert=false;overlay.dataset.phase='idle';delete document.body.dataset.transition}

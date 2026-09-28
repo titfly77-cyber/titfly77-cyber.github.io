@@ -37,4 +37,10 @@
 #loading-t{width:112px;height:112px;overflow:visible;transform-box:view-box;transform-origin:center;transform:scale(0);will-change:transform}
 #entry-status>.button{position:absolute;top:calc(50% + 80px);width:48px;height:48px;min-height:48px;padding:12px}
 #transition[data-phase="loading-gap"] #entry-status{visibility:hidden}
+#t-glass-refraction{position:absolute;inset:0;pointer-events:none;backdrop-filter:blur(3px) saturate(1.35) brightness(1.13);-webkit-backdrop-filter:blur(3px) saturate(1.35) brightness(1.13);mask:url(#t-glass-band);-webkit-mask:url(#t-glass-band);visibility:hidden}
+.transition-window{position:relative;pointer-events:none}
+#t-glass-rim{visibility:hidden;pointer-events:none}
+#transition:is([data-phase="entering"],[data-phase="exiting"]) :is(#t-glass-rim,#t-glass-refraction){visibility:visible}
+.glass-optical-band{stroke-width:18px}.glass-shadow{stroke-width:18px}.glass-body{stroke-width:14px}
+@media(max-width:760px){.glass-optical-band{stroke-width:14px}.glass-shadow{stroke-width:14px}.glass-body{stroke-width:11px}}
 @media(prefers-reduced-motion:reduce){#loading-t{transform:none}}

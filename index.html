@@ -14,7 +14,29 @@
 <body>
   <a class="skip-link" href="#main">跳转到正文</a>
   <div id="site"><header id="header"></header><main id="main" tabindex="-1"></main></div>
-  <div id="transition"><svg width="100%" height="100%" aria-hidden="true"><defs><mask id="t-window" maskUnits="userSpaceOnUse"><rect width="100%" height="100%" fill="white"/><g id="t-group" fill="black"><rect id="t-bar"/><rect id="t-stem"/></g></mask></defs><rect width="100%" height="100%" fill="#f5f5f7" mask="url(#t-window)"/></svg><div id="entry-status" role="status" aria-label="正在加载" aria-live="polite"><svg id="loading-t" viewBox="0 0 120 120" aria-hidden="true"><defs><linearGradient id="loader-graphite" x1=".12" y1="0" x2=".9" y2="1" gradientUnits="objectBoundingBox"><stop stop-color="#4b4858"/><stop offset=".52" stop-color="#24232c"/><stop offset="1" stop-color="#383345"/></linearGradient><linearGradient id="loader-violet" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#c1b5f1"/><stop offset="1" stop-color="#7463aa"/></linearGradient><path id="loader-silhouette" d="M24 22H90L102 34V40Q102 44 98 44H73L69 95Q68.7 99 64 99H56Q51.3 99 51 95L47 44H22Q18 44 18 40V28Q18 22 24 22Z"/></defs><use href="#loader-silhouette" transform="translate(1.5 2.5)" fill="#827399" opacity=".17"/><use href="#loader-silhouette" fill="url(#loader-graphite)"/><path d="M90 22L102 34H94Q90 34 90 30Z" fill="url(#loader-violet)"/><path d="M25 23.5H88M72 45L68 94" fill="none" stroke="#fff" stroke-opacity=".2" stroke-width="1" stroke-linecap="round"/></svg><button class="button soft" aria-label="重新加载图片" title="重新加载图片" hidden><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 6.7M20 4v7h-7"/></svg></button></div></div>
+  <div id="transition">
+    <div id="t-glass-refraction" aria-hidden="true"></div>
+    <svg class="transition-window" width="100%" height="100%" aria-hidden="true">
+      <defs>
+        <mask id="t-window" maskUnits="userSpaceOnUse"><rect width="100%" height="100%" fill="white"/><g id="t-group" fill="black"><rect id="t-bar"/><rect id="t-stem"/></g></mask>
+        <path id="t-glass-contour"/>
+        <mask id="t-glass-band" maskUnits="userSpaceOnUse" x="0" y="0" width="100%" height="100%"><use href="#t-glass-contour" fill="none" stroke="white" class="glass-optical-band"/></mask>
+        <linearGradient id="t-glass-reflection" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="1440" y2="960">
+          <stop stop-color="#fff" stop-opacity=".8"/><stop offset=".24" stop-color="#fff" stop-opacity=".48"/>
+          <stop offset=".43" stop-color="#c5b8dc" stop-opacity=".32"/><stop offset=".6" stop-color="#625a78" stop-opacity=".3"/>
+          <stop offset=".79" stop-color="#e8e0fa" stop-opacity=".6"/><stop offset="1" stop-color="#fff" stop-opacity=".85"/>
+        </linearGradient>
+        <filter id="t-glass-shadow" filterUnits="userSpaceOnUse" x="0" y="0" width="1440" height="960" color-interpolation-filters="sRGB"><feGaussianBlur stdDeviation="3"/></filter>
+      </defs>
+      <rect width="100%" height="100%" fill="#f5f5f7" mask="url(#t-window)"/>
+      <g id="t-glass-rim" fill="none" stroke-linejoin="round">
+        <use href="#t-glass-contour" class="glass-shadow" stroke="#292438" stroke-opacity=".2" filter="url(#t-glass-shadow)"/>
+        <use href="#t-glass-contour" class="glass-body" stroke="url(#t-glass-reflection)"/>
+        <use href="#t-glass-contour" stroke="#464052" stroke-opacity=".25" stroke-width="1.2" transform="translate(1.2 1.5)"/>
+        <use href="#t-glass-contour" stroke="#fff" stroke-opacity=".9" stroke-width="1.6" transform="translate(-1 -1)"/>
+      </g>
+    </svg>
+    <div id="entry-status" role="status" aria-label="正在加载" aria-live="polite"><svg id="loading-t" viewBox="0 0 120 120" aria-hidden="true"><defs><linearGradient id="loader-graphite" x1=".12" y1="0" x2=".9" y2="1" gradientUnits="objectBoundingBox"><stop stop-color="#4b4858"/><stop offset=".52" stop-color="#24232c"/><stop offset="1" stop-color="#383345"/></linearGradient><linearGradient id="loader-violet" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#c1b5f1"/><stop offset="1" stop-color="#7463aa"/></linearGradient><path id="loader-silhouette" d="M24 22H90L102 34V40Q102 44 98 44H73L69 95Q68.7 99 64 99H56Q51.3 99 51 95L47 44H22Q18 44 18 40V28Q18 22 24 22Z"/></defs><use href="#loader-silhouette" transform="translate(1.5 2.5)" fill="#827399" opacity=".17"/><use href="#loader-silhouette" fill="url(#loader-graphite)"/><path d="M90 22L102 34H94Q90 34 90 30Z" fill="url(#loader-violet)"/><path d="M25 23.5H88M72 45L68 94" fill="none" stroke="#fff" stroke-opacity=".2" stroke-width="1" stroke-linecap="round"/></svg><button class="button soft" aria-label="重新加载图片" title="重新加载图片" hidden><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 6.7M20 4v7h-7"/></svg></button></div></div>
   <dialog id="image-dialog"><button class="button" aria-label="关闭图片">关闭 ×</button><img alt=""><p></p></dialog>
   <noscript><p>请启用 JavaScript 浏览作品与交互。<a href="mailto:tfly58526@gmail.com">联系涂腾辉</a> · <a href="./assets/resumes/product-manager.pdf">下载产品经理简历</a></p></noscript>
 </body>
