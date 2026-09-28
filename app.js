@@ -1,12 +1,13 @@
 import {gsap} from 'gsap';
 import {A,homeAssets as H,projects,process,experience,films,copy,narrative} from './site-data.js';
-import {enterTransition,exitTransition} from './motion.js';
+import {enterTransition,exitTransition,holdTransition} from './motion.js';
+import {waitForEntryImages} from './entry-assets.js';
 import {mountScroll} from './scroll.js';
 
 const main=document.querySelector('main');
 const header=document.querySelector('header');
 const reduce=matchMedia('(prefers-reduced-motion: reduce)');
-let active='';let busy=false;let dispose=()=>{};let mountGeneration=0;
+let active='';let busy=true;let dispose=()=>{};let mountGeneration=0;let entryController=null;let pendingNavigation=null;
 const e=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const go=(id,label,cls='button')=>`<a class="${cls}" href="#/${id}">${label}</a>`;
 const label=s=>`<p class="eyebrow">${s}</p>`;
@@ -59,12 +60,13 @@ async function render(id,reset=true){dispose();const generation=++mountGeneratio
  main.querySelectorAll('video').forEach(v=>{v.addEventListener('error',()=>{const message=v.parentElement.querySelector('.video-fallback');if(message)message.hidden=false});v.querySelector('source')?.addEventListener('error',()=>{const message=v.parentElement.querySelector('.video-fallback');if(message)message.hidden=false})});
  const cb=main.querySelector('#copy-email');if(cb)cb.onclick=async()=>{try{await navigator.clipboard.writeText('tfly58526@gmail.com');main.querySelector('#contact-status').textContent='邮箱已复制。';cb.textContent='已复制 ✓'}catch{main.querySelector('#contact-status').textContent='tfly58526@gmail.com'}};
 }
-async function navigate(id,push=true){if(busy||id===active)return;busy=true;try{await exitTransition(reduce.matches);if(push)history.pushState({page:id},'',`#/${id}`);await render(id);await enterTransition(reduce.matches,id==='home');main.focus({preventScroll:true})}finally{busy=false}}
+async function reveal(full){entryController=new AbortController();const signal=entryController.signal;try{await Promise.race([document.fonts.ready,new Promise(r=>setTimeout(r,1800))]);signal.throwIfAborted();await waitForEntryImages(main,signal);await enterTransition(reduce.matches,full)}finally{entryController=null}}
+function finishNavigation(){busy=false;if(pendingNavigation){const next=pendingNavigation;pendingNavigation=null;navigate(next.id,next.push)}}
+async function navigate(id,push=true){if(busy){pendingNavigation={id,push};entryController?.abort();return}if(id===active&&document.querySelector('#transition').hidden)return;busy=true;try{await exitTransition(reduce.matches);holdTransition();if(push)history.pushState({page:id},'',`#/${id}`);await render(id);await reveal(id==='home');main.focus({preventScroll:true})}catch(error){if(error.name!=='AbortError')throw error}finally{finishNavigation()}}
 document.addEventListener('click',ev=>{const a=ev.target.closest('a[href^="#/"]');if(a&&!ev.ctrlKey&&!ev.metaKey&&!ev.shiftKey&&ev.button===0){ev.preventDefault();navigate(a.getAttribute('href').slice(2));return}const b=ev.target.closest('[data-scroll]');if(b){const target=document.getElementById(b.dataset.scroll);target?.scrollIntoView({behavior:reduce.matches?'instant':'smooth',block:'start'})}const zoom=ev.target.closest('[data-image]');if(zoom){const d=document.querySelector('#image-dialog');d.querySelector('img').src=zoom.dataset.image;d.querySelector('img').alt=zoom.dataset.caption;d.querySelector('p').textContent=zoom.dataset.caption;d.showModal()}});
 document.addEventListener('keydown',ev=>{if(ev.key==='Escape'){header.classList.remove('menu-open');const b=header.querySelector('.menu-toggle');if(b){b.setAttribute('aria-expanded','false');b.textContent='菜单'}}});
 const dialog=document.querySelector('#image-dialog');dialog.querySelector('button').onclick=()=>dialog.close();dialog.onclick=ev=>{if(ev.target===dialog)dialog.close()};
 window.addEventListener('popstate',()=>navigate(routeId(),false));
-window.addEventListener('hashchange',()=>{if(!busy&&routeId()!==active)navigate(routeId(),false)});
-await render(routeId());
-await Promise.race([document.fonts.ready,new Promise(r=>setTimeout(r,1800))]);
-await enterTransition(reduce.matches,true);
+window.addEventListener('hashchange',()=>{if(routeId()!==active)navigate(routeId(),false)});
+holdTransition();
+try{await render(routeId());await reveal(true)}catch(error){if(error.name!=='AbortError')throw error}finally{finishNavigation()}

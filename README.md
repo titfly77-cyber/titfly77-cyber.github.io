@@ -28,6 +28,7 @@ $env:PLAYWRIGHT_BROWSERS_PATH = 'E:/personal-resume/cache/playwright'
 - `app.js`、`site-data.js`、`narrative.json`：页面、作品数据与产品叙事。
 - `styles.css`：原型排版、桌面与移动布局。
 - `motion.js`：以实时页面内容作为 T 形窗口的入场、离场转场。
+- `entry-assets.js`：等待首屏图片、素描图层与视频封面加载并解码后再进入；失败时保持遮罩并允许重试。
 - `scroll.js`：首页笔触显影、五阶段产品过程和 About 教育玻璃面板上浮。
 - `material.js`：真实 GLB 模型、表面采样粒子和随滚动在原位生成的产品材质。
 - `assets/`：本地字体、图片、影片、模型与产品经理简历。
@@ -40,7 +41,7 @@ $env:PLAYWRIGHT_BROWSERS_PATH = 'E:/personal-resume/cache/playwright'
 npm test
 ```
 
-Playwright 在 Windows 使用本机 Chrome；其他环境先运行 `npx playwright install chromium`。测试覆盖 15 个页面的桌面与移动布局、资源请求、T 转场、滚动交互、项目筛选、视频、PDF、GLB 材质生成及失败回退。
+Playwright 在 Windows 使用本机 Chrome；其他环境先运行 `npx playwright install chromium`。测试覆盖 15 个页面的桌面与移动布局、资源请求、T 转场、滚动交互、项目筛选、视频、PDF、GLB 材质生成及失败回退，以及进入前的慢网等待、图片解码、失败重试与历史导航取消。
 
 ## 发布
 

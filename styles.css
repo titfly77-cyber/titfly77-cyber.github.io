@@ -33,3 +33,4 @@
 .feature-link[href="#/films"]>img{aspect-ratio:1672/941;object-fit:contain}
 .film-player .film-poster{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;pointer-events:none}
 .film-card:hover .film-cover img{transform:none}
+#entry-status{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;padding:24px;text-align:center;color:var(--body);font-size:14px}
