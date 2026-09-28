@@ -16,6 +16,11 @@ test('first entry waits beyond the animation duration for both image download an
  try{
   await page.goto('/#/home',{waitUntil:'domcontentloaded'});
   await expect(gate(page)).toHaveAttribute('data-phase','loading');
+  await expect(page.locator('#loading-t')).toBeVisible();
+  expect(await page.locator('#entry-status').innerText()).toBe('');
+  const rotation=await page.locator('#loading-t').evaluate(el=>getComputedStyle(el).transform);
+  await page.waitForTimeout(230);
+  expect(await page.locator('#loading-t').evaluate(el=>getComputedStyle(el).transform)).not.toBe(rotation);
   await page.waitForTimeout(2400);
   expect(await page.locator('.sketch-light').evaluate(el=>el.complete)).toBe(false);
   await expect(gate(page)).toHaveAttribute('data-phase','loading');
@@ -47,7 +52,7 @@ test('failed images keep the mask closed until a successful retry',async({page})
  await page.route('**/'+portrait,route=>route.abort());await page.goto('/#/about',{waitUntil:'domcontentloaded'});
  await expect(gate(page)).toHaveAttribute('data-phase','load-error');await page.waitForTimeout(2400);
  await expect(gate(page)).toHaveAttribute('data-phase','load-error');await expect(page.locator('#t-group')).toHaveCSS('visibility','hidden');
- await page.unroute('**/'+portrait);await page.getByRole('button',{name:'重新加载图片 ↻'}).click();
+ await page.unroute('**/'+portrait);await page.getByRole('button',{name:'重新加载图片'}).click();
  await expect(gate(page)).toBeHidden();expect(await page.locator('.about-portrait img').evaluate(el=>el.complete&&el.naturalWidth>0)).toBe(true);
 });
 

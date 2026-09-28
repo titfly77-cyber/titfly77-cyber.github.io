@@ -1,5 +1,4 @@
 const status=document.querySelector('#entry-status');
-const message=status.querySelector('p');
 const retry=status.querySelector('button');
 const overlay=document.querySelector('#transition');
 const frame=()=>new Promise(resolve=>requestAnimationFrame(resolve));
@@ -45,8 +44,7 @@ function waitForRetry(signal){
 
 export async function waitForEntryImages(root,signal){
  const ready=new Set();
- message.textContent='正在加载画面…';retry.hidden=true;root.setAttribute('aria-busy','true');
- const show=setTimeout(()=>{status.hidden=false},250);
+ status.setAttribute('aria-label','正在加载');retry.hidden=true;root.setAttribute('aria-busy','true');
  try{
   while(true){
    signal.throwIfAborted();
@@ -57,13 +55,13 @@ export async function waitForEntryImages(root,signal){
    const failed=[];
    result.forEach((item,i)=>item.status==='fulfilled'?ready.add(pending[i]):failed.push(pending[i]));
    if(failed.length){
-    overlay.dataset.phase='load-error';message.textContent='图片未加载完成，请重试。';status.hidden=false;retry.hidden=false;
+    overlay.dataset.phase='load-error';status.setAttribute('aria-label','图片未加载完成，可重试');retry.hidden=false;
     await waitForRetry(signal);signal.throwIfAborted();
-    retry.hidden=true;message.textContent='正在加载画面…';overlay.dataset.phase='loading';
+    retry.hidden=true;status.setAttribute('aria-label','正在加载');overlay.dataset.phase='loading';
     failed.forEach(refresh);
    }
    // Let decoded images establish their layout, then include anything newly in view.
    await frame();
   }
- }finally{clearTimeout(show);status.hidden=true;retry.hidden=true;root.removeAttribute('aria-busy')}
+ }finally{retry.hidden=true;root.removeAttribute('aria-busy')}
 }
