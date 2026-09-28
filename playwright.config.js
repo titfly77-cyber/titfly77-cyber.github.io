@@ -1,9 +1,2 @@
 import {defineConfig} from '@playwright/test';
-import {existsSync} from 'node:fs';
-export default defineConfig({
-  testDir:'./tests',
-  fullyParallel:false,
-  use:{baseURL:'http://127.0.0.1:4173',headless:true,channel:process.env.PLAYWRIGHT_CHANNEL||(process.platform==='win32'&&existsSync('C:/Program Files/Google/Chrome/Application/chrome.exe')?'chrome':undefined)},
-  webServer:{command:'npm run dev',url:'http://127.0.0.1:4173',reuseExistingServer:!process.env.CI},
-  reporter:'list',
-});
+export default defineConfig({testDir:'./tests',timeout:90000,expect:{timeout:15000},workers:1,fullyParallel:false,outputDir:'./test-results',use:{baseURL:'http://127.0.0.1:4185',headless:true,channel:process.env.CI?undefined:'chrome'},webServer:{command:'node server.mjs --dist',env:{PORT:'4185'},url:'http://127.0.0.1:4185',reuseExistingServer:!process.env.CI},reporter:[['list'],['json',{outputFile:'test-results/report.json'}]]});

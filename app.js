@@ -1,176 +1,70 @@
-import { ui, projects, skills, experiences, tr } from './data.js';
+import {gsap} from 'gsap';
+import {A,homeAssets as H,projects,process,experience,films,copy,narrative} from './site-data.js';
+import {enterTransition,exitTransition} from './motion.js';
+import {mountScroll} from './scroll.js';
 
-const languages = ['en', 'zh-Hans', 'zh-Hant'];
-let language = 'en';
-let currentRoute;
-let languagePosition;
-let renderVersion = 0;
-const main = document.querySelector('#main');
-const toggle = document.querySelector('#language-toggle');
-const options = document.querySelector('#language-options');
-const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
-const text = value => typeof value === 'object' && !Array.isArray(value) ? value[language] ?? value.en : value;
-const u = key => esc(text(ui[key]));
-const route = (path = '', lang = language) => `#/${lang}${path ? `/${path}` : ''}`;
-const arrow = '<span class="arrow" aria-hidden="true">↗</span>';
-const link = (href, label, extra = '') => `<a class="text-link ${extra}" href="${esc(href)}"${href.endsWith('.pdf') ? ' download' : ''}>${label}${arrow}</a>`;
-const external = (href, label) => `<a class="text-link" href="${esc(href)}" target="_blank" rel="noopener noreferrer">${label}${arrow}</a>`;
-const paragraphs = value => esc(text(value)).replace(/\n/g, '<br>');
-const tags = project => `<div class="tags">${text(project.tags).map(tag => `<span>${esc(tag)}</span>`).join('')}</div>`;
-
-function diagram() {
-  return `<div class="diagram" role="img" aria-label="${u('diagram')}: PID, PWM, ${u('feedback')}">
-    <div class="diagram-label">${u('diagram')}</div>
-    <div class="diagram-flow"><div class="diagram-node">PID</div><span aria-hidden="true">→</span><div class="diagram-node">PWM</div><span aria-hidden="true">→</span><div class="diagram-node">${esc(text(tr('Motor','电机','馬達')))}</div></div>
-    <div class="diagram-loop"><span>${u('feedback')}</span></div>
-    <div class="diagram-footer">STM32F103C8</div>
-  </div>`;
+const main=document.querySelector('main');
+const header=document.querySelector('header');
+const reduce=matchMedia('(prefers-reduced-motion: reduce)');
+let active='';let busy=false;let dispose=()=>{};let mountGeneration=0;
+const e=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const go=(id,label,cls='button')=>`<a class="${cls}" href="#/${id}">${label}</a>`;
+const label=s=>`<p class="eyebrow">${s}</p>`;
+const img=(src,alt,cls='',eager=false)=>`<img src="${src}" alt="${e(alt)}" class="${cls}" loading="${eager?'eager':'lazy'}" decoding="async">`;
+const button=(text,target,cls='button')=>`<button class="${cls}" data-scroll="${target}">${text}</button>`;
+const figure=(src,alt,caption='',cls='')=>`<figure class="${cls}"><button class="image-zoom" data-image="${src}" data-caption="${e(caption||alt)}" aria-label="放大：${e(alt)}">${img(src,alt)}</button>${caption?`<figcaption>${caption}</figcaption>`:''}</figure>`;
+const footer=()=>`<footer class="site-footer section"><div>${label('HAVE AN IDEA?')}<h2>让好想法，<br>成为真实的体验。</h2>${go('contact','一起聊聊 ↗','button light')}</div><div class="footer-meta"><span>Titanfy. / 涂腾辉</span><a href="mailto:tfly58526@gmail.com">tfly58526@gmail.com</a><span>Product × Technology × AI</span></div></footer>`;
+const section=(k,title,body,cls='')=>`<section class="section ${cls}">${label(k)}<h2>${title}</h2>${body}</section>`;
+const split=(k,title,body,visual='',cls='')=>`<section class="section split-section ${cls}"><div>${label(k)}<h2>${title}</h2><p class="body-copy">${body}</p></div>${visual}</section>`;
+const rows=items=>`<div class="reasoning-grid">${items.map(([t,d],i)=>`<article class="reason"><span class="number">0${i+1}</span><h3>${t}</h3><p>${d}</p></article>`).join('')}</div>`;
+const scene=p=>`<section class="scene-hero">${img(p.scene,p.title+' · 使用场景','scene-image',true)}<div class="scene-caption"><h1>${p.title}</h1>${button('继续探索 ↓','project-start','text-button')}</div></section>`;
+const head=(k,title,intro='')=>`<section class="page-head section">${label(k)}<h1>${title}</h1>${intro?`<p>${intro}</p>`:''}</section>`;
+function cover(p){if(p.cover)return img(p.cover,p.title);return `<div class="type-art ${p.id}">${label(p.id==='robot'?'EVERYDAY ROBOTICS':'KNOWLEDGE, CONNECTED')}<span>${p.id==='robot'?'Sense.<br>Move.<br>Clean.':'Ask.<br>Share.<br>Connect.'}</span><p>${p.id==='robot'?'从日常清洁，重新思考机器人的角色。':'让团队知识，流动起来。'}</p></div>`}
+function projectCard(p,cls=''){return `<a href="#/${p.id}" class="project-card ${cls}" data-category="${p.category}"><div class="project-visual">${cover(p)}<span class="card-arrow" aria-hidden="true">↗</span></div><div class="project-caption"><p class="eyebrow">${p.tag}<span>${p.year}</span></p><h3>${p.title}</h3><p>${p.short}</p><span class="view-project">View Project ↗</span></div></a>`}
+function home(){return `<section class="sketch-story" id="sketch-story"><div class="home-hero"><div class="portrait-art" aria-hidden="true">${img(H.imgSketchLightOriginalSource,'','sketch-light',true)}${[0,1,2,3,4,5].map(i=>`<div class="ink-pass ink-${i}" style="--mask:url('${H['imgSketchDarkRegisteredSource'+(i===0?'':i+1)]}')">${img(H.imgSketchDarkRegisteredSource1,'','',true)}</div>`).join('')}</div><div class="identity-top"><span>涂腾辉 / TITANFY</span><span>AI 硬件 · 产品 · 设计</span></div><div class="hero-copy"><h1>Product ×<br>Technology × AI</h1><p>把想法，做成真实可用的产品。</p></div>${button('向下探索 ↓','manifesto','text-button explore-down')}</div></section>
+ <section id="manifesto" class="manifesto">${img(H.imgImagePortrait,'','manifesto-ghost')}<div class="glass-surface"><h2>从真实场景触发，让产品发生</h2><p class="manifesto-english">speak for itself</p><span aria-hidden="true">↓</span></div></section>
+ <section class="hero-film section" id="hero-film"><h2>speak for itself</h2><div class="video-wrap"><video id="home-video" muted loop playsinline preload="none" poster="${H.imgTitanfyFromIdeaToProductAutoplayLoop}" aria-label="Titanfy — From idea to product"><source src="assets/videos/hero.mp4" type="video/mp4"></video><button id="hero-play" class="button light">▶ 播放</button><p class="video-fallback" hidden>视频暂时无法播放。<a href="assets/videos/hero.mp4">打开影片 ↗</a></p></div><p class="eyebrow">Titanfy — From idea to product</p></section>
+ ${section('02 / SELECTED WORK','把复杂问题，变成可感知的体验。',`<div class="project-grid selected-grid">${projects.slice(0,2).map(p=>projectCard(p)).join('')}</div>${go('projects','浏览全部项目 ↗','text-link')}`)}
+ <section class="process-story" id="process"><div class="process-sticky section">${label('03 / HOW I WORK — <span id="process-count">01</span> / 05')}<div class="process-split"><ol class="process-nav">${process.map(([t],i)=>`<li class="${i===0?'active':''}"><span>0${i+1}</span> ${t}</li>`).join('')}</ol><div class="process-panels">${process.map(([t,title,body,tags,out],i)=>`<article class="process-panel ${i===0?'active':''}" data-index="${i}"><h2>${title}</h2><p class="body-copy">${body}</p><p class="process-tags">${tags}</p><div class="process-output">${label('OUTPUT')}<p>${out}</p></div></article>`).join('')}</div></div><div class="process-track"><span></span></div></div></section>
+ ${section('04 / BEYOND THE PRODUCT','也用设计与影像，表达想法。',`<div class="project-grid"><a href="#/design" class="feature-link">${img(H.imgVisual2,'BOARD-MIND 设备白模')}${label('DESIGN / 设备 · 结构 · 交互')}<h3>为想法赋形</h3><p>从设备建模，到可被使用的界面。</p></a><a href="#/films" class="feature-link">${img(H.imgVisual3,'农业机械影像')}${label('FILM / AIGC · EDITING')}<h3>让故事被看见</h3><p>用画面、声音与节奏，传达产品价值。</p></a></div>`)}
+ ${section('05 / ABOUT ME','理解需求，也动手实现。',`<p class="body-copy wide-copy">我关注 AI 与硬件的交汇，实践涵盖产品定义、设备设计、嵌入式开发与机器人。从方案讨论到现场联调，我习惯沿着完整的产品过程工作。</p><div class="three-column">${[['产品','研究 / 定义 / 原型 / PRD'],['技术','AI / 嵌入式 / 机器人 / 数据'],['经历','康通电子 / 纬尔科技 / 深圳科创学院']].map(([t,d])=>`<div><h3>${t}</h3><p>${d}</p></div>`).join('')}</div>${go('about','更多关于我 ↗','text-link')}`,'white')}${footer()}`}
+function archive(){return `${head('SELECTED WORK / 2024—2026','Project Archive','想法，正在发生。')}<section class="archive section"><div class="filters" role="group" aria-label="项目分类">${[['all','全部'],['hardware','AI 硬件'],['robot','机器人'],['ai','AI 方案']].map(([id,t],i)=>`<button class="filter ${i===0?'active':''}" data-filter="${id}" aria-pressed="${i===0}">${t}</button>`).join('')}</div><div class="project-grid archive-grid">${projects.map((p,i)=>projectCard(p,i===0?'featured':'')).join('')}</div></section>${footer()}`}
+function materialHero(){return `<section class="material-story" id="project-start"><div class="material-sticky"><div class="material-heading"><h2>BOARD—MIND</h2><p>让氛围，跟上故事。</p></div><div class="model-stage" id="model-stage" aria-label="BOARD-MIND 三维产品展示">${img(H.imgVisual,'BOARD-MIND 完整渲染模型','model-fallback')}<div class="model-status" aria-live="polite">正在载入产品…</div></div><div class="model-footer"><div><span class="eyebrow">CONCEPT → DIGITAL → PHYSICAL</span><p id="material-state">01 / 数字原型</p></div><button class="button soft" id="replay-model">重新显影 ↺</button></div><div class="material-progress"><span></span></div></div></section>`}
+function productNarrative(p){const n=narrative[p.id];return `${section('USER NEEDS',n.painTitle,rows(n.pains))}${split(p.id==='board'?'02 / DISCOVER & DEFINE':'02 / PRODUCT DECISIONS','我负责<br>定义与推进',p.define||'我负责前期需求梳理、产品定义、商业评估、立项及路演筹备，将问题聚焦到桌游阶段与声光反馈之间的连接。')}${section('PRODUCT DEFINITION','从需求，形成产品选择。',`<p class="body-copy wide-copy">${n.definition}</p>${rows(n.decisions)}`)}`}
+function validation(p){const n=narrative[p.id];return section('VALIDATION','让产品价值，经得起验证。',`<p class="body-copy">${n.validationIntro}</p>${rows(n.validations)}`,'white')}
+function video(src,poster,caption){return `<figure class="native-video"><video controls playsinline preload="none" poster="${poster}" aria-label="${e(caption)}"><source src="${src}" type="video/mp4"></video><figcaption>${caption}</figcaption><p class="video-fallback" hidden>视频暂时无法播放。<a href="${src}">打开视频 ↗</a></p></figure>`}
+function board(){const p=projects[0];return scene(p)+materialHero()+`<section class="section" id="board-overview">${label('01 / PRODUCT THINKING')}<div class="split-text"><h2>把注意力，<br>留在游戏里。</h2><p class="body-copy">手动切换声音和灯光容易打断玩家注意力，单一的氛围也限制了桌游体验。BOARD-MIND 连接 AI 语境与声光反馈，让设备跟随故事作出回应。</p></div><div class="three-column metadata"><div>${label('ROLE')}<p>${p.role}</p></div><div>${label('PERIOD')}<p>${p.period}</p></div><div>${label('PROGRESS')}<p>第一代实物 → 第二代演示</p></div></div><div class="button-row">${go('tech','查看技术能力 ↗')}${go('design','设备设计 ↗','button soft')}</div></section>`+productNarrative(p)+section('03 / KEY DECISIONS','让声音与光，成为故事的一部分。',rows([['从语境出发','把桌游阶段与声光反馈联系起来。'],['整合为一台设备','统一设备结构、控制、扬声器与灯光。'],['通过实物验证','在整机联调与演示中推进下一代迭代。']]))+split('04 / DESIGN & DELIVERY','我负责<br>方案与设计','我负责设备设计、硬件选型、PCB 设计和建模布线，并参与上位机 Agent 设计，将 AI 语境解析与声光联动组织成完整方案。',figure(A('6-1304','imgImageWhite'),'BOARD-MIND 设备设计白模'),'white')+section('05 / ITERATION','从一个 Demo，到下一代体验。',`<div class="project-grid">${figure(A('6-1312','imgImageV1'),'第一代声光原型','第一代 / 声光原型')}${video('assets/videos/tabletop-v2.mp4',A('6-1312','imgImageV2'),'第二代 / 整机演示')}</div><p class="body-copy">我负责团队分工、软硬件协作和整机联调，推进第一代实物至第二代演示迭代。</p>`)+validation(p)+section('06 / OUTCOME','获得湘江科技创新院<br>认可与展示机会。',go('tech','探索技术实现 ↗'))+footer()}
+function project(p){return scene(p)+`<section id="project-start" class="project-intro section">${label(p.tag.toUpperCase())}<h2>${p.title}</h2><p class="project-slogan">${p.slogan}</p><div class="metadata two-column"><div>${label('ROLE')}<p>${p.role}</p></div><div>${label('PERIOD')}<p>${p.period}</p></div></div>${p.cover?figure(p.cover,p.title+' · 项目展示'):''}</section>`+split('01 / CONTEXT','从什么问题出发',p.context)+productNarrative(p)+section('04 / OUTCOME',p.outcome,'','outcome-section')+validation(p)+split('03 / IMPLEMENTATION','我负责<br>技术实现',p.technical, p.id==='badge'?video('assets/videos/badge-v1.mp4','assets/images/badge-v1.jpg','初代原型 · 交互演示'):p.id==='tobacco'?figure(p.cover,'项目团队与获奖记录','项目成果记录'):'')+(p.source?`<div class="section source-section"><a class="button" href="${p.source}" target="_blank" rel="noreferrer">查看项目源码 ↗</a></div>`:'')+footer()}
+function tech(){return scene({...projects[0],title:'BOARD-MIND · 技术能力'})+`<div id="project-start">${head('BOARD-MIND / ENGINEERING','从电路，到可感知的体验。','我负责硬件、设备建模与嵌入式开发，把产品定义落实为可运行的声光交互系统。')}</div><div class="section signal-flow"><span>桌游语境</span><b>→</b><span>上位机 Agent</span><b>→</b><span>ESP32-S3</span><b>→</b><span>声音 / 灯光</span></div>`+split('01 / HARDWARE','我负责<br>硬件与电路','我负责硬件选型、原理图与 PCB 设计，把扬声器、灯带与控制系统组织为完整硬件方案。',`<div class="image-pair">${figure(A('4-11','imgImagePcb'),'PCB 布局与布线','PCB 布局与布线')}${figure(A('4-11','imgImageBoard'),'板卡实物','板卡实物')}</div>`,'white')+split('02 / FORM & ASSEMBLY','我负责<br>建模与布线','我负责设备造型、结构建模与内部布线，使声光控制、器件安装与设备外观在同一台原型里协同。',`<div class="image-pair">${figure(A('4-11','imgImageTop'),'设备顶视结构')}${figure(A('4-11','imgImageAngle'),'设备结构角度')}</div>`)+split('03 / EMBEDDED','我负责<br>嵌入式与声光','我负责嵌入式软件开发，基于 ESP32-S3 实现扬声器驱动与 LED 灯带控制；我负责的设备端与上位机 Agent 协同工作，并参与 Agent 设计。','','white')+split('04 / INTEGRATION','我负责<br>整机联调','我负责统筹软硬件协作、整机联调与版本迭代，验证设备各模块的协同表现。',video('assets/videos/tabletop-v2.mp4',A('4-11','imgImageV2'),'第二代 / 整机演示'))+`<div class="section">${go('board','返回产品思维 ↗')}</div>`+footer()}
+function design(){return head('DESIGN / FORM & FUNCTION','为想法，赋形。','设备不仅承载技术，也决定人如何接近、理解和使用它。')+split('01 / INDUSTRIAL DESIGN','BOARD-MIND<br>设备设计','我负责设备设计、建模、PCB 与内部布线，将声光交互装进一台完整设备。'+`<br>${go('board','查看完整项目 ↗')}`,figure(A('4-14','imgImageRender'),'BOARD-MIND 渲染模型'),'white')+`<section class="section project-grid">${figure(A('4-14','imgImageWhite'),'白模与整体造型','01 / 白模与整体造型')}${figure(A('4-14','imgImageTop'),'顶视与结构秩序','02 / 顶视与结构秩序')}</section>`+split('02 / HARDWARE DETAILS','把内在秩序，<br>变成外在体验。','我负责在设备外观、内部布线与硬件集成之间协调，使方案从造型走向可运行的实物。',figure(A('4-14','imgImagePcb'),'PCB 布局与布线'),'white')+split('03 / VISUAL EXPRESSION','让产品，被看见。','一个完整的产品故事。<br><br>从项目定义、设备演示到展示材料，把场景、功能和价值组织成清楚的表达。',figure(A('4-14','imgImagePoster'),'BOARD-MIND 项目展示海报'))+footer()}
+function filmList(){return head('FILMS / MOTION & STORIES','用画面，讲清楚一个故事。','在产品之外，我也通过 AIGC 影像、音轨和剪辑表达想法。参与农眸 AIvideo 团队，让农业机械的价值被看见。')+`<section class="section film-list">${films.map((f,i)=>`<a href="#/${f.id}" class="film-card"><div class="film-cover">${img(f.cover,f.title+' · 起始封面')}<span class="button light">▶ 播放影片</span></div>${label('0'+(i+1)+' / 农眸 AIvideo')}<h2>${f.title}</h2><p>${f.meta}</p></a>`).join('')}</section>`+section('FROM FRAMES TO IMPACT','让创作，连接真实业务。','<p class="body-copy">茶叶采摘及萎凋设备相关宣传片获合作公司采用，宣传视频业务实现盈利。我的工作覆盖素材生成、音轨铺设与剪辑。</p>')+footer()}
+function filmPage(f){return `<section class="film-detail section"><div class="film-player"><video playsinline controls preload="none" poster="${f.cover}" aria-label="${f.title}"><source src="${f.video}" type="video/mp4"></video><button class="button light film-start">▶ 播放影片</button><p class="video-fallback" hidden>视频暂时无法播放。<a href="${f.video}">打开影片 ↗</a></p></div><div class="film-description"><h1>${f.title}</h1><p>农眸 AIvideo / AIGC · 音轨铺设 · 剪辑</p><p>我参与宣传片的素材生成、音轨铺设与剪辑。作品获合作公司采用。</p>${go('films','← 返回影视作品','text-link')}</div></section>`}
+function about(){const c=copy['context-1'];return `<section class="about-hero"><div class="about-portrait">${img(A('context-1','imgPortraitWebsitePhotograph'),'涂腾辉','',true)}<div class="portrait-caption">涂腾辉 / TENGHUI TU<small>PRODUCT × TECHNOLOGY × AI</small></div></div><div class="about-intro">${label('ABOUT / TENGHUI TU')}<h1>理解需求，<br>也动手实现。</h1><p>${c[3]}</p><p>${c[4]}</p>${go('resume','查看我的简历 ↗','button light')}</div></section>
+ <section class="education-story" id="education"><div class="education-backdrop" aria-hidden="true">${img(A('context-1','imgPortraitWebsitePhotograph'),'')}</div><div class="education-glass">${label('01 / EDUCATION')}<h2>湖南农业大学</h2><p class="education-major">湘江卓越工程师学院 · 智能科学与技术</p><div class="three-column"><div>${label('本科')}<p>2024.09 — 至今</p></div><div>${label('预计毕业')}<p>2028.07</p></div><div>${label('学习与表达')}<p>自动化 / 机械设计 / 深度学习 / CET-4</p></div></div><span class="glass-edge" aria-hidden="true"></span></div></section>
+ <section class="internships" id="internships"><div class="section experience-heading">${label('02 / EXPERIENCE')}<h2>从真实问题中，<br>积累判断。</h2></div>${experience.map(([date,title,role,body,english],i)=>`<article class="experience-scene experience-${i}"><div class="experience-image">${img(i===0?projects[4].scene:i===1?projects[3].scene:A('4-14','imgImageWhite'),['知识与协作场景示意','农业机器人应用场景示意','设备与交互开发场景示意'][i])}</div><div class="experience-content">${label(date)}<h3>${title}</h3><p class="experience-role">${role}</p><p>${body}</p><span class="experience-word">${english}</span></div><p class="scenario-caption">${['知识与协作场景','农业机器人应用场景','设备与交互开发'][i]}</p></article>`).join('')}</section>
+ ${section('03 / CAPABILITIES','产品判断 × 技术纵深',`<div class="capabilities">${[['产品与协作','用户调研 · 需求分析 · 竞品分析 · 业务流程 · 原型设计 · PRD · 项目推进 · 数据分析 · PPT 与汇报'],['技术与工程','C / C++ · Python · STM32 · ESP32-S3 · ESP-IDF · FreeRTOS · PCB · SolidWorks · OpenCV / YOLO · ROS 2 / Gazebo'],['设计与影像','Figma · Photoshop · Premiere Pro · After Effects · AIGC · 音轨与剪辑']].map(([t,b])=>`<article><h3>${t}</h3><p>${b}</p></article>`).join('')}</div>`)}
+ ${section('04 / EXPLORATION','保持好奇，也持续实践。','<p class="body-copy">人脸视觉门禁、STM32F4 机械臂电控与运动学、巡线声光小车、烟草划筋机、模拟电赛、无人机硬件与手部外骨骼。</p><p class="body-copy">农业人工智能实验室 / 智慧农业协会副会长 / 学院教务科助理 / 永州三下乡实践 / 农眸 AIvideo</p>')}${footer()}`}
+function contact(){return `<section class="contact-page section">${label('LET’S MAKE SOMETHING REAL')}<h1>下一个好想法，<br>从一次交流开始。</h1><p>产品、AI 硬件、设计或影像，期待和你聊聊。</p><a class="email-big" href="mailto:tfly58526@gmail.com">tfly58526<br>@gmail.com <span>↗</span></a><div class="button-row"><button class="button" id="copy-email">复制邮箱 ↗</button><a class="button soft" href="https://github.com/titfly77-cyber" target="_blank" rel="noreferrer">GitHub ↗</a>${go('resume','查看简历 ↗','button soft')}</div><p role="status" id="contact-status"></p></section>`}
+function resume(){return head('RESUME / TENGHUI TU','涂腾辉 · 简历','嵌入式硬件与 AI 硬件产品方向')+`<section class="section resume-page"><div class="button-row"><a class="button" href="assets/resumes/product-manager.pdf" download="涂腾辉_硬件与AI硬件产品经理.pdf">下载 PDF ↗</a><a class="button soft" href="assets/resumes/product-manager.pdf" target="_blank" rel="noreferrer">打开简历 ↗</a></div>${figure(A('4-44','imgResumePdfFinal'),'涂腾辉 · 硬件与 AI 硬件产品经理简历')}</section>`}
+function navigation(id){const current=['board','tech','badge','robot','tobacco','agent'].includes(id)?'projects':id.startsWith('film')?'films':id;header.innerHTML=`<nav class="navigation" aria-label="主导航">${go('home','Titanfy.','wordmark '+(id==='home'?'current':''))}<div class="nav-links" id="nav-links">${[['projects','项目'],['design','设计'],['films','影视'],['about','关于'],['contact','联系']].map(([r,t])=>`<a href="#/${r}" ${r===current?'aria-current="page"':''}>${t}</a>`).join('')}${go('resume','查看简历 ↗')}</div><button class="menu-toggle" aria-expanded="false" aria-controls="nav-links">菜单</button></nav>`;const menu=header.querySelector('.menu-toggle');menu.onclick=()=>{const opened=menu.getAttribute('aria-expanded')==='true';menu.setAttribute('aria-expanded',String(!opened));menu.textContent=opened?'菜单':'关闭 ×';header.classList.toggle('menu-open',!opened)}}
+function routeId(){let id=location.hash.replace(/^#\/?/,'').split('?')[0].replace(/^(en|zh-Hans|zh-Hant)(\/|$)/,'').replace(/^projects\//,'')||'home';const old={'tabletop-device':'board','emotion-screen':'badge','bed-cleaner':'robot','bed-cleaning-robot':'robot','tobacco-recognition':'tobacco','knowledge-agent':'agent'};return old[id]||id}
+async function render(id,reset=true){dispose();const generation=++mountGeneration;active=id;header.classList.remove('menu-open');document.body.dataset.page=id;navigation(id);const p=projects.find(p=>p.id===id);main.innerHTML=id==='home'?home():id==='projects'?archive():id==='board'?board():id==='tech'?tech():id==='design'?design():id==='films'?filmList():id==='about'?about():id==='contact'?contact():id==='resume'?resume():films.some(f=>f.id===id)?filmPage(films.find(f=>f.id===id)):p?project(p):head('404','这个页面暂时不在这里。',go('home','返回首页 ↗'));
+ document.title=(id==='home'?'Titanfy · 涂腾辉 / 产品、设计与影像':(p?.title||{projects:'项目',tech:'BOARD-MIND · 技术能力',design:'设计',films:'影视',about:'关于',contact:'联系',resume:'简历',film1:films[0].title,film2:films[1].title}[id]||'页面')+' · Titanfy');
+ if(reset)window.scrollTo({top:0,behavior:'instant'});
+ const cleanups=[];dispose=()=>{for(const fn of cleanups)fn();main.querySelectorAll('video').forEach(v=>v.pause())};
+ cleanups.push(mountScroll(main,reduce));
+ if(id==='board')import('./material.js').then(async({mountMaterial})=>{if(generation!==mountGeneration)return;const cleanup=await mountMaterial(main.querySelector('#model-stage'),reduce);if(generation!==mountGeneration)cleanup();else cleanups.push(cleanup)}).catch(()=>{const status=document.querySelector('.model-status');if(status)status.textContent='产品展示';});
+ main.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>{main.querySelectorAll('[data-filter]').forEach(x=>{x.classList.toggle('active',x===b);x.setAttribute('aria-pressed',String(x===b))});main.querySelectorAll('[data-category]').forEach(card=>{card.hidden=b.dataset.filter!=='all'&&card.dataset.category!==b.dataset.filter;card.classList.toggle('featured',b.dataset.filter==='all'&&card.getAttribute('href')==='#/board')})});
+ main.querySelectorAll('.film-start').forEach(b=>{const v=b.parentElement.querySelector('video');b.onclick=()=>v.play().catch(()=>{b.textContent='再次播放 ▶'});v.onplay=()=>b.hidden=true;v.onended=()=>b.hidden=false});
+ main.querySelectorAll('video').forEach(v=>{v.addEventListener('error',()=>{const message=v.parentElement.querySelector('.video-fallback');if(message)message.hidden=false});v.querySelector('source')?.addEventListener('error',()=>{const message=v.parentElement.querySelector('.video-fallback');if(message)message.hidden=false})});
+ const cb=main.querySelector('#copy-email');if(cb)cb.onclick=async()=>{try{await navigator.clipboard.writeText('tfly58526@gmail.com');main.querySelector('#contact-status').textContent='邮箱已复制。';cb.textContent='已复制 ✓'}catch{main.querySelector('#contact-status').textContent='tfly58526@gmail.com'}};
 }
-
-function visual(project, detail = false) {
-  if (project.image) return `<img src="./assets/images/${project.image}" alt="${esc(text(project.caption))}" loading="${detail ? 'eager' : 'lazy'}" decoding="async">`;
-  if (project.kind === 'control') return diagram();
-  const label = { adrc:'ADRC', tobacco:'AGRI.', vision:'VISION', competition:'CONTROL' }[project.kind] || 'SYSTEM';
-  return `<div class="text-visual"><strong>${label}</strong><span>${esc(text(project.tags)[0])}</span></div>`;
-}
-
-function card(project) {
-  return `<a class="project-card" href="${route(`projects/${project.id}`)}">
-    <div class="card-media ${project.kind}-media">${visual(project)}<span class="card-corner" aria-hidden="true">↗</span></div>
-    <div class="project-number">${project.index} / ${u('projectLabel')}</div>
-    <h3>${esc(text(project.title))}</h3><p>${esc(text(project.short))}</p>${tags(project)}
-  </a>`;
-}
-
-function footer() {
-  return `<section class="contact-section" id="contact"><div class="container contact-grid">
-    <div><p class="eyebrow">${u('contactLabel')}</p><h2>${paragraphs(ui.contactTitle).replace('<br>', '<br><em>')}${text(ui.contactTitle).includes('\n') ? '</em>' : ''}</h2><p>${u('contactBody')}</p></div>
-    <div class="contact-links"><a class="text-link email-link" href="mailto:tfly58526@gmail.com">tfly58526@gmail.com ${arrow}</a>
-      <div class="contact-minor">${external('https://github.com/titfly77-cyber','GitHub')}${link(`./assets/resumes/resume-${language}.pdf`,u('cv'))}</div>
-      <a class="text-link secondary-link" href="./assets/resumes/resume-trilingual.pdf" download>${u('combined')}${arrow}</a>
-    </div></div></section>
-    <div class="container footer-bottom"><span>© ${new Date().getFullYear()} ${u('name')} · ${u('portfolio')}</span><a href="${route('projects')}?section=other-work">${u('other')}</a><a href="${route()}" data-top>${u('top')}</a></div>`;
-}
-
-function home() {
-  const name = language === 'en' ? 'Tenghui<span>Tu<em>.</em></span>' : `${u('name')}<em>。</em>`;
-  return `<section class="hero container" id="introduction">
-    <div class="hero-copy"><p class="eyebrow">${u('field')}</p><h1>${name}</h1><p class="hero-direction">${paragraphs(ui.direction)}</p><p class="hero-description">${u('intro')}</p>
-      <div class="hero-links"><a class="text-link" href="${route()}?section=selected-work" data-scroll="selected-work">${u('projectsLink')}${arrow}</a>${link(`./assets/resumes/resume-${language}.pdf`,u('cv'),'secondary-link')}</div>
-    </div>
-    <div class="portrait-wrap"><figure class="portrait-frame"><img src="./assets/images/portrait.jpg" alt="${u('portrait')}" width="3480" height="3480" fetchpriority="high"><figcaption class="portrait-caption"><span><i class="small-dot" aria-hidden="true"></i>${u('student')}</span><span>01 — 09</span></figcaption></figure><span class="hero-index" aria-hidden="true">SOFTWARE / HARDWARE / INTEGRATION</span></div>
-  </section>
-  <div class="container technical-strip" aria-label="${u('skillsTitle')}"><span>STM32 & ESP32</span><i aria-hidden="true"></i><span>FreeRTOS</span><i aria-hidden="true"></i><span>PID & ADRC</span><i aria-hidden="true"></i><span>${esc(text(tr('Computer Vision','机器视觉','機器視覺')))}</span><i aria-hidden="true"></i><span>${esc(text(tr('System Integration','系统集成','系統整合')))}</span></div>
-  <section class="section container" id="selected-work"><div class="section-head"><div><p class="eyebrow">${u('selectedLabel')}</p><h2>${u('selected')}</h2></div>${link(route('projects'),u('all'))}</div><div class="work-grid">${projects.slice(0,3).map(card).join('')}</div></section>
-  <section class="section skills-section" id="skills"><div class="container skills-layout"><div class="skills-intro"><p class="eyebrow">${u('skillsLabel')}</p><h2>${paragraphs(ui.skillsTitle)}</h2><p>${u('skillsIntro')}</p></div><div class="skills-list">${skills.map((skill,index)=>`<div class="skill-row"><span class="micro">0${index+1}</span><div><h3>${esc(text(skill.title))}</h3><p>${esc(text(skill.body))}</p><a href="${skill.project ? route(`projects/${skill.project}`) : `${route()}?section=${skill.section}`}" ${skill.section ? `data-scroll="${skill.section}"` : ''}>${u('viewCase')}</a>${index===1 ? `<span aria-hidden="true"> · </span><a href="${route('projects/bed-cleaning-robot')}">ADRC ↗</a>`:''}</div></div>`).join('')}</div></div></section>
-  <section class="section container" id="experience"><div class="section-head"><div><p class="eyebrow">${u('experienceLabel')}</p><h2>${u('experience')}</h2></div><p>${u('experienceIntro')}</p></div><div class="experience-list">${experiences.map(item=>`<article class="experience-row"><div class="experience-date">${esc(text(item.date))}</div><div><h3>${esc(text(item.company))}</h3><p class="experience-role">${esc(text(item.role))}</p></div><p>${esc(text(item.body))}</p></article>`).join('')}</div></section>
-  <section class="section leadership-section container" id="leadership"><div class="section-head"><div><p class="eyebrow">${u('leadershipLabel')}</p><h2>${u('leadership')}</h2></div></div><div class="leadership-grid"><article><h3>${u('leadershipOne')}</h3><p>${u('leadershipOneBody')}</p></article><article><h3>${u('leadershipTwo')}</h3><p>${u('leadershipTwoBody')}</p></article></div></section>`;
-}
-
-function archive() {
-  return `<div class="container project-archive"><div class="page-intro"><a class="back-link" href="${route()}">${u('back')}</a><p class="eyebrow">${u('projectLabel')}</p><h1>${paragraphs(ui.archiveTitle)}</h1><p>${u('archiveIntro')}</p></div><div class="archive-grid">${projects.map(card).join('')}</div>
-  <section class="other-work" id="other-work"><p class="eyebrow">${u('other')}</p><h2>${esc(text(tr('A different kind of making.','另一种创作。','另一種創作。')))}</h2><p>${u('otherIntro')}</p><div class="other-grid">${[['tea-harvesting','teaOne'],['tea-withering','teaTwo']].map(([file,label])=>`<figure><video controls playsinline preload="none" poster="./assets/images/${file}.jpg" aria-label="${u(label)}"><source src="./assets/videos/${file}.mp4" type="video/mp4"></video><figcaption>${u(label)}</figcaption></figure>`).join('')}</div></section></div>`;
-}
-
-function detail(project) {
-  const hasMedia = project.video || project.gallery;
-  const sectionLink = (id,label) => `<a href="${route(`projects/${project.id}`)}?section=${id}" data-scroll="${id}">${u(label)}</a>`;
-  return `<article class="container"><div class="page-intro"><a class="back-link" href="${route('projects')}">${u('backProjects')}</a><p class="eyebrow">${project.index} / ${u('projectLabel')}</p><h1>${esc(text(project.title))}</h1><p>${esc(text(project.short))}</p></div>
-    <div class="project-overview"><div><p class="micro">${u('contribution')}</p><p>${esc(text(project.role))}</p></div><div><p class="micro">${u('stack')}</p>${tags(project)}</div></div>
-    <figure><div class="detail-hero">${visual(project,true)}</div><figcaption class="caption">${esc(text(project.caption))}</figcaption></figure>
-    <div class="case-body"><aside class="case-aside"><p class="eyebrow">${u('contents')}</p>${sectionLink('context','context')}${sectionLink('contribution','contribution')}${sectionLink('implementation','implementation')}${hasMedia?sectionLink('evidence','evidence'):''}${project.source ? `<a href="${project.source}" target="_blank" rel="noopener noreferrer">GitHub ↗</a>`:''}</aside>
-    <div class="case-content"><section class="case-section" id="context"><h2>${u('context')}</h2><p>${esc(text(project.context))}</p></section>
-    <section class="case-section" id="contribution"><h2>${u('contribution')}</h2><ul>${project.contributions.map(item=>`<li>${esc(text(item))}</li>`).join('')}</ul></section>
-    <section class="case-section" id="implementation"><h2>${u('implementation')}</h2><p>${esc(text(project.implementation))}</p>${project.source?external(project.source,u('source')):''}</section>
-    ${hasMedia ? `<section class="case-section" id="evidence"><h2>${u('evidence')}</h2>${project.video ? `<figure><video class="case-video" controls playsinline preload="metadata" poster="./assets/images/${project.id==='robot-arm'?'robot-arm':project.id==='emotion-screen'?'badge-v1':'tabletop-v2'}.jpg" aria-label="${esc(text(project.videoCaption||ui.clip))}"><source src="./assets/videos/${project.video}" type="video/mp4"></video><figcaption class="caption">${esc(text(project.videoCaption||ui.clip))}</figcaption></figure>`:''}${project.gallery?`<div class="gallery">${project.gallery.map(([file,caption])=>`<figure><a href="./assets/images/${file}" target="_blank" rel="noopener noreferrer" aria-label="${u('openImage')}: ${esc(text(caption))}"><img src="./assets/images/${file}" alt="${esc(text(caption))}" loading="lazy" decoding="async"></a><figcaption>${esc(text(caption))}</figcaption></figure>`).join('')}</div>`:''}</section>`:''}
-    ${project.outcome ? `<section class="case-section" id="outcome"><h2>${u('notes')}</h2><p>${esc(text(project.outcome))}</p></section>`:''}
-    </div></div><section class="related"><h2>${u('related')}</h2><div class="related-links">${projects.filter(p=>p.id!==project.id).slice(0,2).map(p=>link(route(`projects/${p.id}`),esc(text(p.title)))).join('')}</div></section></article>`;
-}
-
-function parseLocation() {
-  const raw = location.hash.slice(1);
-  const [path, query] = raw.split('?');
-  const parts = path.split('/').filter(Boolean);
-  return { language: languages.includes(parts[0]) ? parts[0] : 'en', path:parts.slice(1).join('/'), section:new URLSearchParams(query).get('section'), valid:languages.includes(parts[0]) };
-}
-
-function closeLanguage(restoreFocus = false) {
-  options.hidden = true;
-  toggle.setAttribute('aria-expanded','false');
-  if(restoreFocus) toggle.focus({preventScroll:true});
-}
-
-function render() {
-  const version = ++renderVersion;
-  const next = parseLocation();
-  const hadRoute = Boolean(currentRoute);
-  const wasLanguageChange = currentRoute && currentRoute.path === next.path && currentRoute.language !== next.language;
-  language = next.language;
-  document.documentElement.lang = language;
-  try { localStorage.setItem('portfolio-language',language); } catch {}
-  document.querySelector('#header-note').textContent = text(ui.portfolio);
-  document.querySelector('.skip-link').textContent = text(ui.skip);
-  document.querySelector('.wordmark').href = route();
-  document.querySelector('.wordmark').setAttribute('aria-label',text(ui.name));
-  toggle.innerHTML = `${{en:'EN','zh-Hans':'简','zh-Hant':'繁'}[language]} <span aria-hidden="true">⌄</span>`;
-  toggle.setAttribute('aria-label',text(ui.choose));
-  options.querySelectorAll('a').forEach(a=>{a.href=route(next.path,a.dataset.language);a.removeAttribute('aria-current');if(a.dataset.language===language)a.setAttribute('aria-current','true');});
-  closeLanguage();
-  const project = next.path.startsWith('projects/') ? projects.find(p=>p.id===next.path.slice(9)) : null;
-  if(next.valid && !next.path) main.innerHTML = home();
-  else if(next.valid && next.path==='projects') main.innerHTML = archive();
-  else if(next.valid && project) main.innerHTML = detail(project);
-  else main.innerHTML = `<section class="container empty-page"><h1>${u('notFound')}</h1><p>${u('notFoundBody')}</p>${link(route(),u('back'))}</section>`;
-  document.querySelector('#footer').innerHTML = footer();
-  document.title = `${project ? text(project.title) : text(ui.name)} — ${text(ui.portfolio)}`;
-  document.querySelector('meta[name="description"]').content=text(project?project.short:ui.intro);
-  const scrollState=languagePosition;
-  languagePosition=undefined;
-  currentRoute=next;
-  requestAnimationFrame(async()=>{
-    if(wasLanguageChange)await document.fonts.ready;
-    if(version!==renderVersion)return;
-    if(wasLanguageChange && scrollState){
-      const target=document.getElementById(scrollState.id);
-      window.scrollTo({top:target?target.getBoundingClientRect().top+scrollY-scrollState.offset:scrollState.y,behavior:'instant'});
-    }else if(next.section && document.getElementById(next.section)) document.getElementById(next.section).scrollIntoView({behavior:'instant'});
-    else window.scrollTo({top:0,behavior:'instant'});
-    if(hadRoute && !wasLanguageChange)main.focus({preventScroll:true});
-  });
-}
-
-toggle.addEventListener('click',()=>{
-  const open=options.hidden;
-  options.hidden=!open;
-  toggle.setAttribute('aria-expanded',String(open));
-});
-toggle.addEventListener('keydown',event=>{
-  if(event.key==='ArrowDown'){event.preventDefault();options.hidden=false;toggle.setAttribute('aria-expanded','true');options.querySelector('a').focus();}
-});
-document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!options.hidden)closeLanguage(true);});
-document.addEventListener('click',event=>{
-  const target=event.target.closest('a');
-  if(target?.dataset.language){
-    const sections=[...document.querySelectorAll('main section[id], .contact-section')];
-    const headerBottom=document.querySelector('.site-header').getBoundingClientRect().bottom;
-    const visible=sections.map(section=>({section,visible:Math.max(0,Math.min(innerHeight,section.getBoundingClientRect().bottom)-Math.max(headerBottom,section.getBoundingClientRect().top))})).sort((a,b)=>b.visible-a.visible)[0]?.section;
-    languagePosition={id:visible?.id,offset:visible?.getBoundingClientRect().top,y:scrollY};
-    closeLanguage(true);
-  }else if(!event.target.closest('.language-picker'))closeLanguage();
-  if(!target)return;
-  if(target.classList.contains('skip-link')){event.preventDefault();main.focus();return;}
-  if(target.hasAttribute('data-top')){event.preventDefault();window.scrollTo({top:0,behavior:'smooth'});return;}
-  const id=target.dataset.scroll;
-  if(id&&document.getElementById(id)){
-    event.preventDefault();
-    history.replaceState(null,'',target.href);
-    document.getElementById(id).scrollIntoView({behavior:'smooth'});
-  }
-});
-window.addEventListener('hashchange',render);
-if(!location.hash||location.hash==='#'){
-  let saved;
-  try{saved=localStorage.getItem('portfolio-language');}catch{}
-  history.replaceState(null,'',route('',languages.includes(saved)?saved:'en'));
-}
-render();
+async function navigate(id,push=true){if(busy||id===active)return;busy=true;try{await exitTransition(reduce.matches);if(push)history.pushState({page:id},'',`#/${id}`);await render(id);await enterTransition(reduce.matches,id==='home');main.focus({preventScroll:true})}finally{busy=false}}
+document.addEventListener('click',ev=>{const a=ev.target.closest('a[href^="#/"]');if(a&&!ev.ctrlKey&&!ev.metaKey&&!ev.shiftKey&&ev.button===0){ev.preventDefault();navigate(a.getAttribute('href').slice(2));return}const b=ev.target.closest('[data-scroll]');if(b){const target=document.getElementById(b.dataset.scroll);target?.scrollIntoView({behavior:reduce.matches?'instant':'smooth',block:'start'})}const zoom=ev.target.closest('[data-image]');if(zoom){const d=document.querySelector('#image-dialog');d.querySelector('img').src=zoom.dataset.image;d.querySelector('img').alt=zoom.dataset.caption;d.querySelector('p').textContent=zoom.dataset.caption;d.showModal()}});
+document.addEventListener('keydown',ev=>{if(ev.key==='Escape'){header.classList.remove('menu-open');const b=header.querySelector('.menu-toggle');if(b){b.setAttribute('aria-expanded','false');b.textContent='菜单'}}});
+const dialog=document.querySelector('#image-dialog');dialog.querySelector('button').onclick=()=>dialog.close();dialog.onclick=ev=>{if(ev.target===dialog)dialog.close()};
+window.addEventListener('popstate',()=>navigate(routeId(),false));
+window.addEventListener('hashchange',()=>{if(!busy&&routeId()!==active)navigate(routeId(),false)});
+await render(routeId());
+await Promise.race([document.fonts.ready,new Promise(r=>setTimeout(r,1800))]);
+await enterTransition(reduce.matches,true);

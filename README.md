@@ -1,33 +1,51 @@
-# Tenghui Tu · Personal engineering portfolio
+﻿# Titanfy · 涂腾辉 / 产品、设计与影像
 
-技术优先的三语个人作品网站。首次访问为英文，支持简体、繁体切换。首页、九个项目详情与总览均使用本地内容；字体和媒体不依赖第三方加载。
+个人作品集，依据 Titanfy Figma Edition 05 原型实现。围绕产品定义、设计、实物验证与影像表达展开，包含首页、项目总览、五个项目、BOARD-MIND 技术能力、设计、影视、两部影片、关于、联系和简历，共 15 个页面。
 
-## 本地预览
+## 本地运行
 
-安装 Node.js 后，在本目录执行 `npm run dev`，访问 http://localhost:4173 。预览站点仅绑定本机。
+使用 Node.js 22 或更新版本：
 
-`npm run build` 生成 `dist/`；`npm run preview` 预览构建结果。网站没有运行时框架依赖。
+```sh
+npm ci
+npm run dev
+```
 
-## 内容维护
+打开 http://localhost:4173 。`npm run build` 生成静态网站 `dist/`，`npm run preview` 预览构建结果。无需服务端或环境密钥。
 
-- `data.js`：三语文案、项目贡献、有效仓库链接、实习内容。
-- `app.js`：首页、项目总览、详情页与语言切换。
-- `styles.css`：字体、色彩、响应式排版。
-- `assets/`：仅纳入网站所需的照片、视频、简历及本地字体。
-- 新增中文字符后需要更新 Noto 字体子集，或以完整的 Noto Serif SC/TC 字体替换对应文件。
+在本项目指定的 Windows 工作区开发时，将临时目录和工具缓存保存在工作区内：
 
-扫床机器人按用户确认采用 ADRC；巡线小车按已有源码展示 PID 轮速控制。BOARD-MIND 空仓库不设源码链接；受限实习图片不包含在站点资产中。短视频与照片的图注区分原型版本，示意图明确标示为结构说明。
+```powershell
+$env:TEMP = 'E:/personal-resume/tmp'
+$env:TMP = $env:TEMP
+$env:TMPDIR = $env:TEMP
+$env:npm_config_cache = 'E:/personal-resume/cache/npm'
+$env:PLAYWRIGHT_BROWSERS_PATH = 'E:/personal-resume/cache/playwright'
+```
 
-## GitHub Pages
+## 内容和交互
 
-本目录可以作为独立仓库。`dist/` 为发布产物，部署时只上传此目录的内容；原始简历资料目录和开发依赖不属于发布产物。所有资产为相对路径，使用哈希路由，兼容仓库子路径，刷新项目详情也可访问。
+- `app.js`、`site-data.js`、`narrative.json`：页面、作品数据与产品叙事。
+- `styles.css`：原型排版、桌面与移动布局。
+- `motion.js`：以实时页面内容作为 T 形窗口的入场、离场转场。
+- `scroll.js`：首页笔触显影、五阶段产品过程和 About 教育玻璃面板上浮。
+- `material.js`：真实 GLB 模型、表面采样粒子和随滚动在原位生成的产品材质。
+- `assets/`：本地字体、图片、影片、模型与产品经理简历。
 
-代码已推送到 `titfly77-cyber/personal-website`。仓库中的 Pages 工作流会在 `main` 更新后构建并发布 `dist/`；首次使用时，需要在仓库 **Settings → Pages → Build and deployment** 中将 Source 设为 **GitHub Actions**，然后重新运行工作流。
+关于页使用不含内部信息的场景视觉；实习经历文案保留。Education 玻璃面板连续上浮进入实习场景，作为此次对原型的调整。影片详情保留起始封面，点击后播放。支持减少动态效果设置；3D 加载失败时显示产品图片。
 
 ## 验证
 
-运行 `npm install`、`npx playwright install chromium`，再执行 `npm test`。浏览器验证覆盖三语、路由、素材、视频、简历和移动端布局。测试截图保存在 `test-results/`。
+```sh
+npm test
+```
 
-## 字体
+Playwright 在 Windows 使用本机 Chrome；其他环境先运行 `npx playwright install chromium`。测试覆盖 15 个页面的桌面与移动布局、资源请求、T 转场、滚动交互、项目筛选、视频、PDF、GLB 材质生成及失败回退。
 
-英文主字体为 Cormorant Garamond；简繁汉字分别由 Noto Serif SC/TC 补充。字体采用 SIL Open Font License，许可文本保存在 `assets/fonts/`。页面中的中文字体文件为针对当前文案的本地子集。
+## 发布
+
+目标站点：https://titfly77-cyber.github.io/
+
+GitHub Actions 在 `main` 更新后构建并部署 `dist/`。仓库 Settings → Pages 的 Source 应为 GitHub Actions。资源使用相对路径，页面使用哈希路由，详情页可直接访问和刷新。
+
+当前版本使用本地 Manrope 与 Noto Sans SC 字体，许可证随字体存放。模型已进行纹理压缩及 Meshopt 编码；运行时解码器随网站打包。原始资料与测试输出不属于发布产物。

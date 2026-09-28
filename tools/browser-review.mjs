@@ -1,0 +1,13 @@
+import {chromium} from '@playwright/test';
+import fs from 'node:fs/promises';
+const output='E:/personal-resume/work/website-final/qa';await fs.mkdir(output,{recursive:true});
+const browser=await chromium.launch({channel:'chrome',headless:true,args:['--disable-gpu-sandbox']});
+const page=await browser.newPage({viewport:{width:1440,height:960}});const errors=[];
+page.on('pageerror',err=>errors.push(err.message));page.on('console',msg=>{if(msg.type()==='error')errors.push(msg.text())});
+await page.goto('http://127.0.0.1:4185/#/home');await page.locator('#transition').waitFor({state:'hidden'});await page.screenshot({path:output+'/home-desktop.png'});
+await page.evaluate(()=>scrollTo(0,innerHeight));await page.waitForTimeout(500);await page.screenshot({path:output+'/home-drawn.png'});
+await page.goto('http://127.0.0.1:4185/#/about');await page.locator('#transition').waitFor({state:'hidden'});await page.screenshot({path:output+'/about-desktop.png'});await page.locator('.education-story').scrollIntoViewIfNeeded();await page.waitForTimeout(500);await page.screenshot({path:output+'/education.png'});
+await page.goto('http://127.0.0.1:4185/#/board');await page.locator('#transition').waitFor({state:'hidden'});await page.screenshot({path:output+'/board-scene.png'});await page.evaluate(()=>scrollTo(0,innerHeight));await page.locator('#model-stage.ready').waitFor({timeout:90000});await page.waitForTimeout(800);await page.screenshot({path:output+'/model-cad.png'});await page.evaluate(()=>scrollTo(0,innerHeight*2.5));await page.waitForTimeout(1500);await page.screenshot({path:output+'/model-final.png'});
+const model=await page.locator('#model-stage').evaluate(el=>({particles:el.dataset.particles,state:el.dataset.model,progress:el.closest('section').dataset.progress}));
+await page.setViewportSize({width:390,height:844});await page.goto('http://127.0.0.1:4185/#/home');await page.locator('#transition').waitFor({state:'hidden'});await page.screenshot({path:output+'/home-mobile.png'});await page.goto('http://127.0.0.1:4185/#/about');await page.locator('#transition').waitFor({state:'hidden'});await page.screenshot({path:output+'/about-mobile.png'});
+console.log(JSON.stringify({errors,model},null,2));await fs.writeFile(output+'/initial-review.json',JSON.stringify({errors,model},null,2));await browser.close();

@@ -1,92 +1,32 @@
 import {test,expect} from '@playwright/test';
-import {projects} from '../data.js';
-
-test('English landing page, real assets, three languages and persistence',async({page,request})=>{
-  const errors=[];page.on('pageerror',e=>errors.push(e.message));
-  await page.goto('/');
-  await expect(page.locator('html')).toHaveAttribute('lang','en');
-  await expect(page.locator('h1')).toContainText('Tenghui');
-  await expect(page.locator('#selected-work .project-card')).toHaveCount(3);
-  await expect(page.locator('header button')).toHaveCount(1);
-  await page.locator('#language-toggle').click();
-  await page.locator('[data-language="zh-Hans"]').click();
-  await expect(page.locator('h1')).toContainText('涂腾辉');
-  await page.reload();await expect(page.locator('html')).toHaveAttribute('lang','zh-Hans');
-  await page.goto('/');await expect(page.locator('html')).toHaveAttribute('lang','zh-Hans');
-  await page.goto('/#/en');await expect(page.locator('html')).toHaveAttribute('lang','en');
-  const downloadPromise=page.waitForEvent('download');
-  await page.locator('.hero-links a[download]').click();
-  expect((await downloadPromise).suggestedFilename()).toBe('resume-en.pdf');
-  for(const lang of ['en','zh-Hans','zh-Hant']){
-    const response=await request.get(`/assets/resumes/resume-${lang}.pdf`);
-    expect(response.ok()).toBeTruthy();expect(response.headers()['content-type']).toBe('application/pdf');
-  }
-  for(const font of ['cormorant.ttf','cormorant-italic.ttf','noto-sc.woff2','noto-tc.woff2'])expect((await request.get(`/assets/fonts/${font}`)).ok()).toBeTruthy();
-  expect(errors).toEqual([]);
+const routes=['home','projects','board','tech','badge','robot','tobacco','agent','design','films','film1','film2','about','contact','resume'];
+const open=async(page,id)=>{await page.goto('/#/'+id);await page.locator('#transition').waitFor({state:'hidden'});await expect(page.locator('main h1').first()).toBeVisible()};
+for(const [name,width,height] of [['desktop',1440,960],['mobile',390,844]])test(`${name}: all 15 routes render, fit the screen, and retain valid local assets`,async({page,request})=>{
+ await page.setViewportSize({width,height});await page.emulateMedia({reducedMotion:'reduce'});const errors=[];page.on('pageerror',err=>errors.push(err.message));const assets=new Set();
+ for(const id of routes){await open(page,id);await expect(page.locator('header .wordmark')).toBeVisible();expect(await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth),id+' overflow').toBeLessThanOrEqual(1);const imgs=await page.locator('main img').evaluateAll(nodes=>nodes.map(n=>n.getAttribute('src')));imgs.forEach(src=>assets.add(src));expect(await page.locator('main').innerText()).not.toMatch(/undefined|NaN|TODO|占位/);}
+ for(const src of assets){const res=await request.head('/'+src);expect(res.ok(),src).toBeTruthy();expect(Number(res.headers()['content-length']),src).toBeGreaterThan(0)}expect(errors).toEqual([]);
 });
-
-test('All project details in all languages, valid assets and deep-link refresh',async({page,request})=>{
-  const errors=[];page.on('pageerror',e=>errors.push(e.message));
-  for(const lang of ['en','zh-Hans','zh-Hant']){
-    for(const project of projects){
-      await page.goto(`/#/${lang}/projects/${project.id}`);
-      await expect(page.locator('h1')).toHaveText(project.title[lang]);
-      await expect(page.locator('#contribution li').first()).toBeVisible();
-      const local=await page.locator('img,video source').evaluateAll(els=>els.map(el=>el.getAttribute('src')));
-      for(const url of local)expect((await request.head(url)).ok(),url).toBeTruthy();
-    }
-  }
-  await page.goto('/#/en/projects/bed-cleaning-robot');
-  await expect(page.locator('#implementation')).toContainText('ADRC');
-  await page.locator('#language-toggle').click();await page.locator('[data-language="zh-Hant"]').click();
-  await expect(page).toHaveURL(/zh-Hant\/projects\/bed-cleaning-robot/);
-  await page.reload();await expect(page.locator('h1')).toHaveText('掃床機器人');
-  await page.goto('/#/en/projects/tabletop-device');
-  await expect(page.locator('a[href*="BOARD-MIND"]')).toHaveCount(0);
-  await page.goto('/#/en/projects');await expect(page.locator('.archive-grid .project-card')).toHaveCount(9);
-  expect(errors).toEqual([]);
+test('T entry and exit mask the live page, preserve geometry, and reach the requested page',async({page})=>{
+ await page.setViewportSize({width:1440,height:960});await page.goto('/#/home');await expect(page.locator('#transition')).toBeVisible();await page.waitForTimeout(1250);const g=await page.locator('#t-bar').evaluate(el=>({w:+el.getAttribute('width'),h:+el.getAttribute('height')}));expect(g.w).toBe(640);expect(g.h).toBe(112);await page.screenshot({path:'test-results/t-entry.png'});await page.locator('#transition').waitFor({state:'hidden'});
+ await page.locator('.nav-links a[href="#/about"]').click();await expect(page.locator('#transition')).toBeVisible();await page.locator('#transition').waitFor({state:'hidden'});await expect(page).toHaveURL(/#\/about$/);await expect(page.locator('.about-hero h1')).toContainText('理解需求');await page.goBack();await page.locator('#transition').waitFor({state:'hidden'});await expect(page.locator('.home-hero')).toBeVisible();
 });
-
-test('Desktop/mobile layout, keyboard selector and video playback',async({page})=>{
-  await page.setViewportSize({width:1440,height:1000});await page.goto('/#/en');
-  await page.evaluate(()=>document.fonts.ready);
-  await page.screenshot({path:'test-results/home-desktop.png',fullPage:true});
-  await page.locator('#language-toggle').focus();await page.keyboard.press('ArrowDown');
-  await expect(page.locator('#language-options')).toBeVisible();
-  await page.keyboard.press('Escape');await expect(page.locator('#language-toggle')).toBeFocused();
-  await page.locator('#experience').scrollIntoViewIfNeeded();
-  const before=await page.locator('#experience').evaluate(el=>el.getBoundingClientRect().top);
-  await page.locator('#language-toggle').click();await page.locator('[data-language="zh-Hans"]').click();
-  await expect(page.locator('html')).toHaveAttribute('lang','zh-Hans');
-  await expect.poll(async()=>Math.abs((await page.locator('#experience').evaluate(el=>el.getBoundingClientRect().top))-before)).toBeLessThan(8);
-  for(const width of [375,768,1440]){
-    await page.setViewportSize({width,height:900});
-    for(const path of ['en','zh-Hans','zh-Hant/projects','en/projects/line-following-robot']){
-      await page.goto('/#/'+path);await page.evaluate(()=>document.fonts.ready);
-      expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),`${width} ${path}`).toBeTruthy();
-    }
-  }
-  await page.setViewportSize({width:375,height:812});await page.goto('/#/zh-Hans');await page.evaluate(()=>document.fonts.ready);
-  await page.screenshot({path:'test-results/home-mobile.png',fullPage:true});
-  await page.goto('/#/en/projects/emotion-screen');
-  const video=page.locator('video');await video.scrollIntoViewIfNeeded();
-  await video.evaluate(async el=>{el.muted=true;await el.play();});
-  await expect.poll(()=>video.evaluate(el=>el.currentTime)).toBeGreaterThan(0);
-  await page.goto('/#/en/does-not-exist');await expect(page.locator('h1')).toContainText('This page has moved');
+test('scroll deepens pencil strokes, advances all product stages, and controls muted hero video',async({page})=>{
+ await page.setViewportSize({width:1440,height:960});await open(page,'home');const start=await page.locator('.ink-canvas path').first().getAttribute('stroke-width');const before=await page.locator('.portrait-art').screenshot();await page.evaluate(()=>scrollTo({top:1100,behavior:'instant'}));await expect.poll(async()=>+(await page.locator('.ink-canvas path').first().getAttribute('stroke-width'))).toBeGreaterThan(7);expect(start).toBe('0.001');const after=await page.locator('.portrait-art').screenshot();expect(before.equals(after)).toBe(false);
+ await page.evaluate(()=>{const p=document.querySelector('.process-story');scrollTo({top:p.offsetTop+(p.offsetHeight-innerHeight)*.87,behavior:'instant'})});await expect(page.locator('#process-count')).toHaveText('05');await expect(page.locator('.process-panel.active h2')).toHaveText('在真实反馈里，继续迭代。');
+ await page.locator('#home-video').scrollIntoViewIfNeeded();await expect.poll(()=>page.locator('#home-video').evaluate(v=>!v.paused)).toBeTruthy();expect(await page.locator('#home-video').evaluate(v=>v.muted&&v.loop&&v.playsInline)).toBe(true);await page.locator('#hero-play').click();await expect.poll(()=>page.locator('#home-video').evaluate(v=>v.paused)).toBeTruthy();
 });
-
-test('Production output works under a repository subpath',async({page,request})=>{
-  const errors=[];page.on('pageerror',e=>errors.push(e.message));
-  await page.goto('/dist/#/en/projects/emotion-screen');
-  await expect(page.locator('h1')).toHaveText('Interactive electronic badge');
-  await expect.poll(()=>page.locator('.detail-hero img').evaluate(el=>el.naturalWidth)).toBeGreaterThan(0);
-  await page.reload();await expect(page.locator('h1')).toHaveText('Interactive electronic badge');
-  const sources=await page.locator('img,video source').evaluateAll(els=>els.map(el=>el.src));
-  for(const url of sources){expect(new URL(url).pathname).toContain('/dist/assets/');expect((await request.head(url)).ok()).toBeTruthy();}
-  await page.goto('/dist/#/en');await page.evaluate(()=>document.fonts.ready);
-  await page.setViewportSize({width:1440,height:1000});
-  await page.screenshot({path:'test-results/preview-desktop.png'});
-  await page.setViewportSize({width:390,height:844});await page.goto('/dist/#/en');
-  await page.screenshot({path:'test-results/preview-mobile.png'});
-  expect(errors).toEqual([]);
+test('archive filters stay local, mobile menu routes correctly, and no confidential photos are served',async({page})=>{
+ await page.emulateMedia({reducedMotion:'reduce'});await page.setViewportSize({width:390,height:844});await open(page,'projects');await page.getByRole('button',{name:'AI 方案',exact:true}).click();await expect(page.locator('.project-card:visible')).toHaveCount(1);await expect(page.locator('.project-card:visible h3')).toHaveText('项目知识问答 Agent');await expect(page.locator('#transition')).toBeHidden();await page.locator('.menu-toggle').click();await expect(page.locator('.menu-toggle')).toHaveAttribute('aria-expanded','true');await page.locator('.nav-links a[href="#/about"]').click();await expect(page.locator('.about-intro')).toBeVisible();expect(await page.locator('.experience-image img').evaluateAll(imgs=>imgs.every(i=>i.src.includes('/assets/figma/')))).toBe(true);
+});
+test('education panel floats continuously into the three internship scenes',async({page})=>{
+ await page.setViewportSize({width:1440,height:960});await open(page,'about');await page.locator('.education-story').scrollIntoViewIfNeeded();const first=await page.locator('.education-glass').evaluate(el=>({top:el.getBoundingClientRect().top,transform:getComputedStyle(el).transform,blur:getComputedStyle(el).backdropFilter}));await page.evaluate(()=>scrollBy({top:300,behavior:'instant'}));await page.waitForTimeout(100);const second=await page.locator('.education-glass').evaluate(el=>({top:el.getBoundingClientRect().top,transform:getComputedStyle(el).transform}));expect(second.top).toBeLessThan(first.top-300);expect(second.transform).not.toBe(first.transform);expect(first.blur).toContain('blur');await expect(page.locator('.experience-scene')).toHaveCount(3);
+});
+test('films keep their cover until deliberate playback and PDFs/video ranges are available',async({page,request})=>{
+ await page.emulateMedia({reducedMotion:'reduce'});await open(page,'film1');const v=page.locator('.film-player video');expect(await v.evaluate(v=>v.paused&&v.currentTime===0&&Boolean(v.poster)&&!v.autoplay)).toBe(true);await page.locator('.film-start').click();await expect.poll(()=>v.evaluate(v=>v.currentTime)).toBeGreaterThan(0);await expect(page.locator('.film-start')).toBeHidden();await v.evaluate(v=>v.pause());const pdf=await request.get('/assets/resumes/product-manager.pdf');expect(pdf.ok()).toBeTruthy();expect(pdf.headers()['content-type']).toContain('pdf');const range=await request.get('/assets/videos/tea-harvesting.mp4',{headers:{Range:'bytes=0-1023'}});expect(range.status()).toBe(206);expect((await range.body()).length).toBe(1024);
+});
+test('real GLB loads with thousands of surface particles and scroll reveals its material',async({page})=>{
+ await page.setViewportSize({width:1440,height:960});const errors=[];page.on('console',m=>{if(m.type()==='error')errors.push(m.text())});await open(page,'board');await page.evaluate(()=>scrollTo({top:innerHeight,behavior:'instant'}));await expect(page.locator('#model-stage')).toHaveAttribute('data-model','loaded',{timeout:60000});expect(+(await page.locator('#model-stage').getAttribute('data-particles'))).toBeGreaterThanOrEqual(3000);await page.waitForTimeout(300);const before=await page.locator('#model-stage').screenshot();await page.evaluate(()=>{const s=document.querySelector('.material-story');scrollTo({top:s.offsetTop+(s.offsetHeight-innerHeight)*.84,behavior:'instant'})});await page.waitForTimeout(1300);await expect(page.locator('#material-state')).toContainText('完整产品');const after=await page.locator('#model-stage').screenshot();expect(before.equals(after)).toBe(false);await page.locator('#replay-model').click();await expect.poll(()=>page.locator('.material-story').getAttribute('data-progress')).toBe('0.000');expect(errors).toEqual([]);
+});
+test('reduced motion and failed model requests leave a usable complete page',async({page})=>{
+ await page.emulateMedia({reducedMotion:'reduce'});await open(page,'home');await expect(page.locator('#transition')).toBeHidden();expect(await page.locator('.sketch-story').evaluate(el=>el.offsetHeight<innerHeight*1.2)).toBe(true);await expect(page.locator('.process-panel')).toHaveCount(5);await page.route('**/assets/models/*.glb',route=>route.abort());await open(page,'board');await expect(page.locator('#model-stage')).toHaveAttribute('data-model','fallback');await expect(page.locator('.model-fallback')).toBeVisible();await page.locator('.source-section').count();
 });
